@@ -58,14 +58,16 @@ class grader {
             return ['status' => 'error', 'message' => 'Submission contained no code or readable file.'];
         }
 
-        // 2. Extract or determine test cases
-        $tests = $this->get_test_cases($assign->get_instance()->intro);
+        // 2. Detect language & extract test cases
+        $is_java = (bool)preg_match('/\b(public\s+class|class\s+\w+|System\.out\.print|public\s+static\s+void\s+main)\b/', $code);
+        $lang = $is_java ? 'java' : 'python';
+        $tests = $this->get_test_cases($assign->get_instance()->intro, $lang);
 
         // 3. Run Unit Tests (Functional Correctness)
-        $test_results = \local_autograder\test_runner::run($code, $tests);
+        $test_results = \local_autograder\test_runner::run($code, $tests, $lang);
 
         // 4. Run AI Code Review (Quality, Complexity, Style)
-        $ai_results = \local_autograder\ai_reviewer::review($code, $assign->get_instance()->intro);
+        $ai_results = \local_autograder\ai_reviewer::review($code, $assign->get_instance()->intro, $lang);
 
         // 5. Compute Hybrid Score
         $test_weight = (int)(get_config('local_autograder', 'test_weight') ?: 70);
@@ -160,7 +162,7 @@ class grader {
 
         foreach ($files as $file) {
             $filename = strtolower($file->get_filename());
-            if (str_ends_with($filename, '.py') || str_ends_with($filename, '.txt')) {
+            if (str_ends_with($filename, '.py') || str_ends_with($filename, '.java') || str_ends_with($filename, '.txt')) {
                 return $file->get_content();
             }
         }
@@ -171,7 +173,7 @@ class grader {
     /**
      * Extracts test cases from assignment description or supplies defaults.
      */
-    private function get_test_cases(string $intro): array {
+    private function get_test_cases(string $intro, string $lang = 'python'): array {
         // Check if intro has <tests>[...]</tests> block
         if (preg_match('/<tests>\s*(\[.*?\])\s*<\/tests>/s', $intro, $matches)) {
             $parsed = json_decode($matches[1], true);
@@ -180,7 +182,37 @@ class grader {
             }
         }
 
-        // Default test suite for our Assignment 1
+        // If assignment mentions fibonacci or language is Java, provide Fibonacci test suite
+        if (stripos($intro, 'fibonacci') !== false || $lang === 'java') {
+            return [
+                [
+                    'name' => 'Fibonacci of 0 (Base Case)',
+                    'expression' => 'fibonacci(0)',
+                    'expected' => '0',
+                    'points' => 25,
+                ],
+                [
+                    'name' => 'Fibonacci of 1 (Base Case)',
+                    'expression' => 'fibonacci(1)',
+                    'expected' => '1',
+                    'points' => 25,
+                ],
+                [
+                    'name' => 'Fibonacci of 7 (Standard)',
+                    'expression' => 'fibonacci(7)',
+                    'expected' => '13',
+                    'points' => 25,
+                ],
+                [
+                    'name' => 'Fibonacci of 10 (Large)',
+                    'expression' => 'fibonacci(10)',
+                    'expected' => '55',
+                    'points' => 25,
+                ],
+            ];
+        }
+
+        // Default test suite for Python Assignment 1
         return [
             [
                 'name' => 'Factorial of 5 (Standard)',

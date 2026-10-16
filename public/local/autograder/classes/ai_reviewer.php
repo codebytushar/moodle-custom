@@ -24,35 +24,36 @@ class ai_reviewer {
      *
      * @param string $code The student's submitted code
      * @param string $prompt Context or assignment prompt
+     * @param string $lang Programming language ('python', 'java', etc.)
      * @return array [score, summary, positives, improvements, is_ai]
      */
-    public static function review(string $code, string $prompt = ''): array {
+    public static function review(string $code, string $prompt = '', string $lang = 'python'): array {
         $apikey = get_config('local_autograder', 'gemini_key');
         $model = get_config('local_autograder', 'ai_model') ?: 'gemini-3.8-flash';
 
         if (!empty($apikey)) {
-            $aires = self::call_gemini($code, $prompt, $apikey, $model);
+            $aires = self::call_gemini($code, $prompt, $apikey, $model, $lang);
             if ($aires !== null) {
                 return $aires;
             }
         }
 
         // Fallback to local heuristic code review
-        return self::local_heuristic_review($code, $prompt);
+        return self::local_heuristic_review($code, $prompt, $lang);
     }
 
     /**
      * Calls Google Gemini API.
      */
-    private static function call_gemini(string $code, string $prompt, string $key, string $model): ?array {
+    private static function call_gemini(string $code, string $prompt, string $key, string $model, string $lang = 'python'): ?array {
         $url = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$key}";
 
-        $system_instruction = "You are an expert Python programming teacher and automated grader. "
-            . "Evaluate the student's Python code for correctness, clarity, style, edge cases, and algorithmic efficiency. "
+        $system_instruction = "You are an expert computer science professor and automated code evaluator. "
+            . "Evaluate the student's {$lang} code for correctness against the assignment requirements, logic, clarity, edge cases, and algorithmic efficiency. "
             . "Always return your response in strictly valid JSON format with this exact structure: "
             . '{"score": <number 0-100>, "summary": "<1-2 sentence overview>", "positives": ["<strength 1>", "<strength 2>"], "improvements": ["<suggestion 1>", "<suggestion 2>"]}';
 
-        $user_prompt = "Assignment Prompt:\n{$prompt}\n\nStudent Submission:\n```python\n{$code}\n```";
+        $user_prompt = "Assignment Prompt:\n{$prompt}\n\nStudent Submission ({$lang}):\n```{$lang}\n{$code}\n```";
 
         $body = [
             'contents' => [
