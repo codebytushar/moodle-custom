@@ -58,7 +58,7 @@ if ($hassiteconfig) {
         'local_autograder/ai_model',
         get_string('setting_ai_model', 'local_autograder'),
         get_string('setting_ai_model_desc', 'local_autograder'),
-        'gemini-2.5-flash',
+        'gemini-3.8-flash',
         PARAM_TEXT
     ));
 

@@ -28,7 +28,7 @@ class ai_reviewer {
      */
     public static function review(string $code, string $prompt = ''): array {
         $apikey = get_config('local_autograder', 'gemini_key');
-        $model = get_config('local_autograder', 'ai_model') ?: 'gemini-2.5-flash';
+        $model = get_config('local_autograder', 'ai_model') ?: 'gemini-3.8-flash';
 
         if (!empty($apikey)) {
             $aires = self::call_gemini($code, $prompt, $apikey, $model);
