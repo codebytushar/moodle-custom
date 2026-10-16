@@ -174,10 +174,15 @@ class grader {
      * Extracts test cases from assignment description or supplies defaults.
      */
     private function get_test_cases(string $intro, string $lang = 'python'): array {
+        // Normalize HTML entities and line breaks from rich text editors (TinyMCE/Atto)
+        $clean = html_entity_decode($intro, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $clean = str_ireplace(['<br>', '<br/>', '<br />', '&nbsp;'], ["\n", "\n", "\n", " "], $clean);
+
         // Check if intro has <tests>[...]</tests> block
-        if (preg_match('/<tests>\s*(\[.*?\])\s*<\/tests>/s', $intro, $matches)) {
-            $parsed = json_decode($matches[1], true);
-            if (is_array($parsed)) {
+        if (preg_match('/<tests>\s*(.*?)\s*<\/tests>/si', $clean, $matches)) {
+            $raw_json = trim(strip_tags($matches[1]));
+            $parsed = json_decode($raw_json, true);
+            if (is_array($parsed) && !empty($parsed)) {
                 return $parsed;
             }
         }
