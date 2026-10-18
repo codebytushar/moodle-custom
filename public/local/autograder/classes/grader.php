@@ -187,6 +187,15 @@ class grader {
             }
         }
 
+        // Also check if intro contains a JSON test array directly (e.g. if rich text editor stripped <tests>)
+        if (preg_match('/(\[\s*\{\s*"name"\s*:.*?\}\s*\])/si', $clean, $matches)) {
+            $raw_json = trim(strip_tags($matches[1]));
+            $parsed = json_decode($raw_json, true);
+            if (is_array($parsed) && !empty($parsed)) {
+                return $parsed;
+            }
+        }
+
         // If assignment mentions fibonacci or language is Java, provide Fibonacci test suite
         if (stripos($intro, 'fibonacci') !== false || $lang === 'java') {
             return [
